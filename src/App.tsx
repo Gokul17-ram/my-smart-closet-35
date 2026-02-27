@@ -10,6 +10,7 @@ import AddItem from "./pages/AddItem";
 import WeeklyPlanner from "./pages/WeeklyPlanner";
 import Laundry from "./pages/Laundry";
 import Recommendations from "./pages/Recommendations";
+import VirtualTryOn from "./pages/VirtualTryOn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/planner" element={<WeeklyPlanner />} />
             <Route path="/laundry" element={<Laundry />} />
             <Route path="/recommendations" element={<Recommendations />} />
+            <Route path="/try-on" element={<VirtualTryOn />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

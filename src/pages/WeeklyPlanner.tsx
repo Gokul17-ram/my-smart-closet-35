@@ -4,7 +4,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useWardrobe } from '@/contexts/WardrobeContext';
 import { ClothingItem } from '@/types/wardrobe';
 import { format, startOfWeek, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, X, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Sparkles, Wand2 } from 'lucide-react';
+import { generateWeekPlan } from '@/utils/outfitSuggester';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,6 +25,7 @@ interface DayOutfit {
 
 const WeeklyPlanner = () => {
   const { items } = useWardrobe();
+  const { toast } = useToast();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [weekPlan, setWeekPlan] = useState<Record<string, DayOutfit>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -219,8 +222,16 @@ const WeeklyPlanner = () => {
               </p>
             </div>
           </div>
-          <Button className="btn-primary">
-            <Sparkles className="w-4 h-4 mr-2" />
+          <Button
+            className="btn-primary"
+            onClick={() => {
+              const dayKeys = weekDays.map((d) => format(d, 'yyyy-MM-dd'));
+              const plan = generateWeekPlan(items, dayKeys);
+              setWeekPlan((prev) => ({ ...prev, ...plan }));
+              toast({ title: 'Week planned!', description: 'Outfits auto-suggested based on your wardrobe.' });
+            }}
+          >
+            <Wand2 className="w-4 h-4 mr-2" />
             Auto-Plan Week
           </Button>
         </motion.div>

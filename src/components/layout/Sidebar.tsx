@@ -8,6 +8,7 @@ import {
   WashingMachine,
   User,
   Plus,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ const navItems = [
   { icon: Shirt, label: 'My Wardrobe', path: '/wardrobe' },
   { icon: Calendar, label: 'Weekly Planner', path: '/planner' },
   { icon: Sparkles, label: 'AI Stylist', path: '/recommendations' },
+  { icon: Eye, label: 'Virtual Try-On', path: '/try-on' },
   { icon: WashingMachine, label: 'Laundry', path: '/laundry' },
 ];
 
