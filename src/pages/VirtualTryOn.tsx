@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWardrobe } from '@/contexts/WardrobeContext';
 import { ClothingItem, Category } from '@/types/wardrobe';
-import { Upload, X, User, Shirt, Footprints, Watch, ChevronDown } from 'lucide-react';
+import { Upload, X, User, Shirt, Footprints, Watch, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const slotConfig: { key: string; label: string; categories: Category[]; icon: React.ElementType }[] = [
   { key: 'top', label: 'Top', categories: ['tops'], icon: Shirt },
@@ -17,16 +19,26 @@ const slotConfig: { key: string; label: string; categories: Category[]; icon: Re
 
 const VirtualTryOn = () => {
   const { items } = useWardrobe();
+  const { toast } = useToast();
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Record<string, ClothingItem>>({});
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: 'File too large', description: 'Please upload an image under 10MB', variant: 'destructive' });
+        return;
+      }
       const reader = new FileReader();
-      reader.onload = (ev) => setUserPhoto(ev.target?.result as string);
+      reader.onload = (ev) => {
+        setUserPhoto(ev.target?.result as string);
+        setGeneratedImage(null);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -34,6 +46,7 @@ const VirtualTryOn = () => {
   const selectItem = (slot: string, item: ClothingItem) => {
     setSelectedItems((prev) => ({ ...prev, [slot]: item }));
     setActiveSlot(null);
+    setGeneratedImage(null);
   };
 
   const removeItem = (slot: string) => {
@@ -42,6 +55,41 @@ const VirtualTryOn = () => {
       delete next[slot];
       return next;
     });
+    setGeneratedImage(null);
+  };
+
+  const generateTryOn = async () => {
+    if (!userPhoto || Object.keys(selectedItems).length === 0) {
+      toast({ title: 'Missing inputs', description: 'Upload your photo and select at least one clothing item', variant: 'destructive' });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const clothingImages = Object.values(selectedItems).map((item) => ({
+        name: item.name,
+        url: item.image,
+      }));
+
+      const { data, error } = await supabase.functions.invoke('virtual-try-on', {
+        body: { userPhoto, clothingImages },
+      });
+
+      if (error) throw error;
+
+      if (data?.image) {
+        setGeneratedImage(data.image);
+        toast({ title: 'Preview generated!', description: 'Your virtual try-on is ready' });
+      } else {
+        toast({ title: 'Generation complete', description: data?.text || 'Preview generated but no image was returned. Try different items.' });
+      }
+    } catch (err: any) {
+      console.error('Try-on error:', err);
+      const message = err?.message || 'Failed to generate preview';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const selectedList = Object.values(selectedItems);
@@ -51,7 +99,7 @@ const VirtualTryOn = () => {
       <div className="p-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-display text-4xl font-bold text-foreground">Virtual Try-On</h1>
-          <p className="mt-2 text-lg text-muted-foreground">Upload your photo and preview outfit combinations</p>
+          <p className="mt-2 text-lg text-muted-foreground">Upload your photo and preview outfits with AI</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -67,7 +115,7 @@ const VirtualTryOn = () => {
               <div className="relative group">
                 <img src={userPhoto} alt="User" className="w-full rounded-lg object-cover aspect-[3/4]" />
                 <button
-                  onClick={() => setUserPhoto(null)}
+                  onClick={() => { setUserPhoto(null); setGeneratedImage(null); }}
                   className="absolute top-2 right-2 p-2 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="w-4 h-4" />
@@ -86,49 +134,54 @@ const VirtualTryOn = () => {
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
           </motion.div>
 
-          {/* Center: Preview Composite */}
+          {/* Center: AI Preview */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="glass-card p-6"
           >
-            <h2 className="font-display text-xl font-semibold text-foreground mb-4">Outfit Preview</h2>
-            {selectedList.length === 0 && !userPhoto ? (
-              <div className="w-full aspect-[3/4] rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground gap-3">
-                <User className="w-16 h-16" />
-                <p className="text-center text-sm">Upload your photo and select items to see a preview</p>
+            <h2 className="font-display text-xl font-semibold text-foreground mb-4">AI Preview</h2>
+
+            {isGenerating ? (
+              <div className="w-full aspect-[3/4] rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                <p className="text-sm font-medium">Generating your look...</p>
+                <p className="text-xs text-muted-foreground">This may take a moment</p>
+              </div>
+            ) : generatedImage ? (
+              <div className="relative">
+                <img src={generatedImage} alt="AI Generated Try-On" className="w-full rounded-lg object-cover aspect-[3/4]" />
+                <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-primary/90 text-primary-foreground text-xs font-medium flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  AI Generated
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* User photo thumbnail */}
-                {userPhoto && (
-                  <div className="flex justify-center">
-                    <img src={userPhoto} alt="You" className="w-32 h-40 rounded-lg object-cover border-2 border-primary/30" />
-                  </div>
-                )}
-                {/* Selected outfit grid */}
-                {selectedList.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {selectedList.map((item) => (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="relative rounded-lg overflow-hidden border border-border"
-                      >
-                        <img src={item.image} alt={item.name} className="w-full aspect-square object-cover" />
-                        <div className="absolute bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm px-2 py-1">
-                          <p className="text-xs font-medium text-foreground truncate">{item.name}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-sm text-muted-foreground">Select clothing items from the right panel →</p>
-                )}
+              <div className="w-full aspect-[3/4] rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground gap-3">
+                <User className="w-16 h-16" />
+                <p className="text-center text-sm px-4">Upload your photo, select items, then click Generate to see yourself in the outfit</p>
               </div>
             )}
+
+            {/* Generate Button */}
+            <Button
+              className="w-full mt-4 btn-primary"
+              onClick={generateTryOn}
+              disabled={isGenerating || !userPhoto || selectedList.length === 0}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Try-On
+                </>
+              )}
+            </Button>
           </motion.div>
 
           {/* Right: Item Selection */}
@@ -150,9 +203,7 @@ const VirtualTryOn = () => {
                       onClick={() => setActiveSlot(activeSlot === slot.key ? null : slot.key)}
                       className={cn(
                         'w-full flex items-center gap-3 p-3 rounded-lg border transition-colors',
-                        selected
-                          ? 'border-primary/50 bg-primary/5'
-                          : 'border-border hover:border-primary/30'
+                        selected ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/30'
                       )}
                     >
                       <slot.icon className="w-5 h-5 text-muted-foreground" />
