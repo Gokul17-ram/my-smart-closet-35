@@ -14,7 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clothing_items: {
+        Row: {
+          care_instructions: string | null
+          category: string
+          color: string | null
+          created_at: string
+          fabric: string | null
+          id: string
+          image: string
+          last_worn: string | null
+          laundry_status: string | null
+          name: string
+          occasion: string | null
+          season: string | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          care_instructions?: string | null
+          category: string
+          color?: string | null
+          created_at?: string
+          fabric?: string | null
+          id?: string
+          image: string
+          last_worn?: string | null
+          laundry_status?: string | null
+          name: string
+          occasion?: string | null
+          season?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          care_instructions?: string | null
+          category?: string
+          color?: string | null
+          created_at?: string
+          fabric?: string | null
+          id?: string
+          image?: string
+          last_worn?: string | null
+          laundry_status?: string | null
+          name?: string
+          occasion?: string | null
+          season?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wear_history: {
+        Row: {
+          category: string
+          created_at: string
+          date: string
+          id: string
+          item_id: string
+          item_name: string
+          occasion: string
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          date?: string
+          id?: string
+          item_id: string
+          item_name: string
+          occasion: string
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          date?: string
+          id?: string
+          item_id?: string
+          item_name?: string
+          occasion?: string
+          rating?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wear_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

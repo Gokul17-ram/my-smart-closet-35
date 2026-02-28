@@ -10,8 +10,10 @@ import {
   Plus,
   Eye,
   History,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -25,6 +27,7 @@ const navItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50">
@@ -91,9 +94,17 @@ export function Sidebar() {
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
             <User className="w-5 h-5 text-muted-foreground" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-sidebar-foreground">Guest User</p>
-            <p className="text-xs text-muted-foreground">Free Plan</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">
+              {user?.email || 'Guest'}
+            </p>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <LogOut className="w-3 h-3" />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>
