@@ -11,6 +11,7 @@ import WeeklyPlanner from "./pages/WeeklyPlanner";
 import Laundry from "./pages/Laundry";
 import Recommendations from "./pages/Recommendations";
 import VirtualTryOn from "./pages/VirtualTryOn";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/laundry" element={<Laundry />} />
             <Route path="/recommendations" element={<Recommendations />} />
             <Route path="/try-on" element={<VirtualTryOn />} />
+            <Route path="/history" element={<History />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

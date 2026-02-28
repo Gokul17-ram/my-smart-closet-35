@@ -9,6 +9,7 @@ import {
   User,
   Plus,
   Eye,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ const navItems = [
   { icon: Sparkles, label: 'AI Stylist', path: '/recommendations' },
   { icon: Eye, label: 'Virtual Try-On', path: '/try-on' },
   { icon: WashingMachine, label: 'Laundry', path: '/laundry' },
+  { icon: History, label: 'History', path: '/history' },
 ];
 
 export function Sidebar() {
