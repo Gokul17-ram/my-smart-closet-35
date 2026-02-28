@@ -37,3 +37,13 @@ export interface WeekPlan {
   weekStart: Date;
   days: DayPlan[];
 }
+
+export interface WearEvent {
+  id: string;
+  itemId: string;
+  itemName: string;
+  category: Category;
+  occasion: Occasion;
+  date: Date;
+  rating: number; // 1-5
+}

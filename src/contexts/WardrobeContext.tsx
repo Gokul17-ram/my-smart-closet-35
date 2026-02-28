@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ClothingItem, Outfit, Category, LaundryStatus } from '@/types/wardrobe';
+import { ClothingItem, Outfit, Category, LaundryStatus, WearEvent } from '@/types/wardrobe';
 import { mockClothingItems, mockOutfits } from '@/data/mockData';
+import { generateMockWearHistory } from '@/data/mockWearHistory';
 
 interface WardrobeContextType {
   items: ClothingItem[];
   outfits: Outfit[];
+  wearHistory: WearEvent[];
   addItem: (item: Omit<ClothingItem, 'id' | 'createdAt' | 'usageCount'>) => void;
   updateItem: (id: string, updates: Partial<ClothingItem>) => void;
   deleteItem: (id: string) => void;
@@ -13,6 +15,7 @@ interface WardrobeContextType {
   getItemsByLaundryStatus: (status: LaundryStatus) => ClothingItem[];
   addOutfit: (outfit: Omit<Outfit, 'id' | 'createdAt'>) => void;
   deleteOutfit: (id: string) => void;
+  logWear: (itemId: string, occasion: string, rating: number) => void;
 }
 
 const WardrobeContext = createContext<WardrobeContextType | undefined>(undefined);
@@ -20,6 +23,7 @@ const WardrobeContext = createContext<WardrobeContextType | undefined>(undefined
 export function WardrobeProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ClothingItem[]>(mockClothingItems);
   const [outfits, setOutfits] = useState<Outfit[]>(mockOutfits);
+  const [wearHistory, setWearHistory] = useState<WearEvent[]>(() => generateMockWearHistory());
 
   const addItem = (item: Omit<ClothingItem, 'id' | 'createdAt' | 'usageCount'>) => {
     const newItem: ClothingItem = {
@@ -66,11 +70,28 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     setOutfits((prev) => prev.filter((outfit) => outfit.id !== id));
   };
 
+  const logWear = (itemId: string, occasion: string, rating: number) => {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+    const event: WearEvent = {
+      id: Date.now().toString(),
+      itemId,
+      itemName: item.name,
+      category: item.category,
+      occasion: occasion as any,
+      date: new Date(),
+      rating,
+    };
+    setWearHistory((prev) => [event, ...prev]);
+    updateItem(itemId, { usageCount: item.usageCount + 1, lastWorn: new Date() });
+  };
+
   return (
     <WardrobeContext.Provider
       value={{
         items,
         outfits,
+        wearHistory,
         addItem,
         updateItem,
         deleteItem,
@@ -79,6 +100,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         getItemsByLaundryStatus,
         addOutfit,
         deleteOutfit,
+        logWear,
       }}
     >
       {children}
