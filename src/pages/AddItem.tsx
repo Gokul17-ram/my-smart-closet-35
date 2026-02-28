@@ -50,7 +50,7 @@ const AddItem = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.category) {
@@ -62,11 +62,10 @@ const AddItem = () => {
       return;
     }
 
-    // Use a placeholder image if none provided
     const finalImage = formData.image || 
       'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=500&fit=crop';
 
-    addItem({
+    await addItem({
       ...formData,
       image: finalImage,
       laundryStatus: formData.laundryStatus,
