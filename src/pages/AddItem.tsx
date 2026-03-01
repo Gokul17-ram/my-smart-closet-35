@@ -172,7 +172,7 @@ const AddItem = () => {
                     </span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
                       onChange={handleImageChange}
                       className="hidden"
                     />

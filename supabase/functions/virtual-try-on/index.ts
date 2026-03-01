@@ -31,6 +31,31 @@ serve(async (req) => {
       (img: { name: string; url: string }, i: number) => `Item ${i + 1}: ${img.name}`
     ).join(", ");
 
+    // Fetch and convert image URLs to base64 data URLs for AI compatibility
+    const toBase64DataUrl = async (url: string): Promise<string> => {
+      // If already a data URL, return as-is
+      if (url.startsWith('data:')) return url;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Failed to fetch image: ${url}`);
+      const buffer = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      // Determine mime type from content-type header or URL extension
+      let mime = resp.headers.get('content-type') || 'image/jpeg';
+      // Force unsupported formats to jpeg
+      if (mime.includes('avif') || mime.includes('heic') || mime.includes('heif')) {
+        mime = 'image/jpeg';
+      }
+      return `data:${mime};base64,${base64}`;
+    };
+
+    // Convert user photo if it's a URL
+    const userPhotoDataUrl = await toBase64DataUrl(userPhoto);
+
     // Build content array with user photo and clothing images
     const contentParts: any[] = [
       {
@@ -41,15 +66,16 @@ Create a realistic fashion visualization showing how the person in the photo wou
       },
       {
         type: "image_url",
-        image_url: { url: userPhoto }
+        image_url: { url: userPhotoDataUrl }
       }
     ];
 
-    // Add each clothing image
+    // Add each clothing image (converted to base64)
     for (const img of clothingImages) {
+      const imgDataUrl = await toBase64DataUrl(img.url);
       contentParts.push({
         type: "image_url",
-        image_url: { url: img.url }
+        image_url: { url: imgDataUrl }
       });
     }
 
