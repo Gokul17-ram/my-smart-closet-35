@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWardrobe } from '@/contexts/WardrobeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Category, Season, Occasion, LaundryStatus } from '@/types/wardrobe';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,12 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, X, Save, ArrowLeft } from 'lucide-react';
+import { Upload, X, Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AddItem = () => {
   const navigate = useNavigate();
   const { addItem } = useWardrobe();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -36,15 +39,16 @@ const AddItem = () => {
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        setFormData((prev) => ({ ...prev, image: result }));
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -62,8 +66,27 @@ const AddItem = () => {
       return;
     }
 
-    const finalImage = formData.image || 
-      'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=500&fit=crop';
+    setUploading(true);
+    let finalImage = 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=500&fit=crop';
+
+    if (imageFile && user) {
+      const fileExt = imageFile.name.split('.').pop();
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('clothing-images')
+        .upload(filePath, imageFile);
+
+      if (uploadError) {
+        toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
+        setUploading(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('clothing-images')
+        .getPublicUrl(filePath);
+      finalImage = urlData.publicUrl;
+    }
 
     await addItem({
       ...formData,
@@ -76,6 +99,7 @@ const AddItem = () => {
       description: `${formData.name} has been added to your wardrobe.`,
     });
 
+    setUploading(false);
     navigate('/wardrobe');
   };
 
@@ -130,7 +154,7 @@ const AddItem = () => {
                       type="button"
                       onClick={() => {
                         setImagePreview(null);
-                        setFormData((prev) => ({ ...prev, image: '' }));
+                        setImageFile(null);
                       }}
                       className="absolute top-3 right-3 p-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
                     >
@@ -273,9 +297,9 @@ const AddItem = () => {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
               >
-                <Button type="submit" className="w-full btn-primary py-6 text-base">
-                  <Save className="w-5 h-5 mr-2" />
-                  Add to Wardrobe
+                <Button type="submit" className="w-full btn-primary py-6 text-base" disabled={uploading}>
+                  {uploading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                  {uploading ? 'Uploading...' : 'Add to Wardrobe'}
                 </Button>
               </motion.div>
             </div>
