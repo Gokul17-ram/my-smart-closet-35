@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWardrobe } from '@/contexts/WardrobeContext';
 import { ClothingItem, Category } from '@/types/wardrobe';
-import { Upload, X, User, Shirt, Footprints, Watch, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
+import { Upload, X, User, Shirt, Footprints, Watch, ChevronDown, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,7 @@ const VirtualTryOn = () => {
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [creditError, setCreditError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +67,7 @@ const VirtualTryOn = () => {
     }
 
     setIsGenerating(true);
+    setCreditError(false);
     try {
       const clothingImages = Object.values(selectedItems).map((item) => ({
         name: item.name,
@@ -75,7 +78,19 @@ const VirtualTryOn = () => {
         body: { userPhoto, clothingImages },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for credit limit error (402)
+        if (error.message?.includes('402') || error.message?.includes('credit') || error.message?.includes('limit')) {
+          setCreditError(true);
+          return;
+        }
+        throw error;
+      }
+
+      if (data?.error?.includes('credit') || data?.error?.includes('limit')) {
+        setCreditError(true);
+        return;
+      }
 
       if (data?.image) {
         setGeneratedImage(data.image);
@@ -86,7 +101,11 @@ const VirtualTryOn = () => {
     } catch (err: any) {
       console.error('Try-on error:', err);
       const message = err?.message || 'Failed to generate preview';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      if (message.includes('402') || message.includes('credit') || message.includes('limit')) {
+        setCreditError(true);
+      } else {
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -142,6 +161,24 @@ const VirtualTryOn = () => {
             className="glass-card p-6"
           >
             <h2 className="font-display text-xl font-semibold text-foreground mb-4">AI Preview</h2>
+
+            {creditError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>AI Credits Exhausted</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Your AI usage limit has been reached. Add more credits to continue generating virtual try-ons.</p>
+                  <a
+                    href="https://lovable.dev/projects/78b1c1de-c2f0-4b66-a07d-8da73aee0c24/settings"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block underline font-medium hover:opacity-80"
+                  >
+                    Add credits in Settings →
+                  </a>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {isGenerating ? (
               <div className="w-full aspect-[3/4] rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground gap-4">
