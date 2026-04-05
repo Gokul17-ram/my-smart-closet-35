@@ -100,10 +100,23 @@ const WeeklyPlanner = () => {
           <h2 className="font-display text-xl font-semibold">
             {format(currentWeekStart, 'MMMM d')} - {format(addDays(currentWeekStart, 6), 'MMMM d, yyyy')}
           </h2>
-          <Button variant="outline" onClick={() => navigateWeek('next')}>
-            Next Week
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                const dayKeys = weekDays.map((d) => format(d, 'yyyy-MM-dd'));
+                const plan = generateWeekPlan(items, dayKeys);
+                setWeekPlan((prev) => ({ ...prev, ...plan }));
+                toast({ title: 'Week planned!', description: 'Outfits auto-suggested based on your wardrobe.' });
+              }}
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              Auto-Fill Week
+            </Button>
+            <Button variant="outline" onClick={() => navigateWeek('next')}>
+              Next Week
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         </motion.div>
 
         {/* Week Grid */}
